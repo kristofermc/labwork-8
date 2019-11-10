@@ -21,6 +21,7 @@ export interface Todo {
 
   Rating: number;
   createdAt: number;
+  Favourite: boolean;
 
 
 }

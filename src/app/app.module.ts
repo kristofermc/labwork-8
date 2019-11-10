@@ -19,6 +19,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { AngularFireModule } from 'angularfire2';
 import { AngularFirestoreModule } from 'angularfire2/firestore';
+import { AngularFireStorageModule } from '@angular/fire/storage';
 
 
 firebase.initializeApp(environment.firebase);
@@ -32,8 +33,9 @@ firebase.initializeApp(environment.firebase);
     AppRoutingModule,
     AngularFireAuthModule,
     ReactiveFormsModule,
-    AngularFireModule.initializeApp(environment.firebase),
+    AngularFireModule.initializeApp(environment.firebase, 'lab-work-8'),
     AngularFirestoreModule,
+    AngularFireStorageModule
   ],
   providers: [
     StatusBar,

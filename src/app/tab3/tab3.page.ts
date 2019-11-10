@@ -1,11 +1,19 @@
 // Kristofer McCormick 1803203 & Oleksandr Zakirov 1802341
 
 import { Component, OnInit } from '@angular/core';
-import { NavController, ModalController } from '@ionic/angular';
+import { NavController } from '@ionic/angular';
 import { AuthenticateService } from '../services/authentication.service';
-import { BehaviorSubject } from 'rxjs';
 
+import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/storage';
+import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/firestore';
+import { Observable } from 'rxjs';
+import { finalize, tap } from 'rxjs/operators';
 
+export interface MyData {
+  name: string;
+  filepath: string;
+  size: number;
+}
 
 @Component({
   selector: 'app-tab3',
@@ -16,52 +24,109 @@ import { BehaviorSubject } from 'rxjs';
 export class Tab3Page implements OnInit {
   userEmail: string;
 
-  time: BehaviorSubject<string> = new BehaviorSubject('00:00');
+  // Upload Task
+  task: AngularFireUploadTask;
 
-  timer: number;
-  interval;
+  // Progress in percentage
+  percentage: Observable<number>;
 
-  state: 'start' | 'stop' = 'stop';
-  startDuration = 1;
+  // Snapshot of uploading file
+  snapshot: Observable<any>;
 
-  constructor(
-    private navCtrl: NavController,
-    private authService: AuthenticateService
-  ) {}
+  // Uploaded File URL
+  UploadedFileURL: Observable<string>;
 
-  startTimer(duration: number) {
-    this.state = 'start';
-    clearInterval(this.interval);
-    this.timer = duration * 5;
-    this.updateTimeValue();
-    this.interval = setInterval( () => {
-      this.updateTimeValue();
-    }, 1000);
+  // Uploaded Image List
+  images: Observable<MyData[]>;
+
+  // File details
+  fileName: string;
+  fileSize: number;
+
+  // Status check
+  isUploading: boolean;
+  isUploaded: boolean;
+
+  private imageCollection: AngularFirestoreCollection<MyData>;
+  constructor(private storage: AngularFireStorage,
+              private database: AngularFirestore,
+              private navCtrl: NavController,
+              private authService: AuthenticateService) {
+    this.isUploading = false;
+    this.isUploaded = false;
+    // Set collection where our documents/ images info will save
+    this.imageCollection = database.collection<MyData>('Recipes');
+    this.images = this.imageCollection.valueChanges();
   }
 
- stopTimer() {
-   clearInterval(this.interval);
-   this.time.next('00:00');
-   this.state = 'stop';
- }
 
-  updateTimeValue() {
-    let minutes: any = this.timer / 60;
-    let seconds: any = this.timer % 60;
+  uploadFile(event: FileList) {
 
-    minutes = String('0' + Math.floor(minutes)).slice(-2);
-    seconds = String('0' + Math.floor(minutes)).slice(-2);
 
-    const text = minutes + ':' + seconds;
-    this.time.next(text);
+    // The File object
+    const file = event.item(0);
 
-    --this.timer;
-
-    if (this.timer < -1) {
-      this.startTimer(this.startDuration);
+    // Validation for Images Only
+    if (file.type.split('/')[0] !== 'image') {
+     console.error('unsupported file type :( ');
+     return;
     }
+
+    this.isUploading = true;
+    this.isUploaded = false;
+
+
+    this.fileName = file.name;
+
+    // The storage path
+    const path = `recipes/${new Date().getTime()}_${file.name}`;
+
+    // Totally optional metadata
+    const customMetadata = { app: 'Image Upload' };
+
+    // File reference
+    const fileRef = this.storage.ref(path);
+
+    // The main task
+    this.task = this.storage.upload(path, file, { customMetadata });
+
+    // Get file progress percentage
+    this.percentage = this.task.percentageChanges();
+    this.snapshot = this.task.snapshotChanges().pipe(
+
+      finalize(() => {
+        // Get uploaded file storage path
+        this.UploadedFileURL = fileRef.getDownloadURL();
+
+        this.UploadedFileURL.subscribe(resp => {
+          this.addImagetoDB({
+            name: file.name,
+            filepath: resp,
+            size: this.fileSize
+          });
+          this.isUploading = false;
+          this.isUploaded = true;
+        }, error => {
+          console.error(error);
+        });
+      }),
+      tap(snap => {
+          this.fileSize = snap.totalBytes;
+      })
+    );
   }
 
+  addImagetoDB(image: MyData) {
+    // Create an ID for document
+    const id = this.database.createId();
+
+    // Set document id with value in database
+    this.imageCollection.doc(id).set(image).then(resp => {
+      console.log(resp);
+    }).catch(error => {
+      console.log('error ' + error);
+    });
+  }
 
   ngOnInit() {
 

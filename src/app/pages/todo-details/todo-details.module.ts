@@ -8,6 +8,7 @@ import { Routes, RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
 import { TodoDetailsPage } from './todo-details.page';
+import { NgCircleProgressModule } from 'ng-circle-progress';
 
 
 
@@ -23,7 +24,27 @@ const routes: Routes = [
     CommonModule,
     FormsModule,
     IonicModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild([
+      {
+        path: '',
+        component: TodoDetailsPage
+      }
+    ]),
+
+    // circle progress for timer
+
+    NgCircleProgressModule.forRoot({
+      // set defaults here
+      radius: 100,
+      outerStrokeWidth: 16,
+      innerStrokeWidth: 8,
+      outerStrokeColor: '#78C000',
+      innerStrokeColor: '#C7E596',
+      animation: false,
+      responsive: true,
+      renderOnClick: false
+    }),
+
   ],
   declarations: [TodoDetailsPage]
 })
