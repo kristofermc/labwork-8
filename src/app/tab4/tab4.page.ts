@@ -69,6 +69,7 @@ export class Tab4Page implements OnInit {
 // just in case they need an extra 2 minutes for example
       if (this.percent === this.radius) {
         clearInterval(this.timer);
+        alert('Times up ');
 
 
       }
@@ -81,6 +82,8 @@ export class Tab4Page implements OnInit {
       this.progress++;
     }, 1000);
   }
+
+  
 
   progressTimer() {
     let countDownDate = new Date();
